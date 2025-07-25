@@ -54,6 +54,7 @@ export default function Home() {
     firstMessage?: string;
   } | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const lastMessageRef = useRef<HTMLDivElement>(null);
 
   // Fetch available models
   const fetchModels = async () => {
@@ -94,6 +95,28 @@ export default function Home() {
       setSelectedModelData(null);
     }
   }, [selectedModel, models]);
+
+  // Auto-scroll to bottom when messages change or loading state changes
+  useEffect(() => {
+    const scrollToBottom = () => {
+      if (lastMessageRef.current) {
+        lastMessageRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "end",
+        });
+      } else if (scrollAreaRef.current) {
+        // Fallback: scroll the scroll area to bottom
+        const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+        if (scrollElement) {
+          scrollElement.scrollTop = scrollElement.scrollHeight;
+        }
+      }
+    };
+
+    // Use a small delay to ensure DOM is updated
+    const timeoutId = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timeoutId);
+  }, [messages, isLoading]);
 
   // Chat management functions
   const createNewChat = async (title?: string, firstMessage?: string) => {
@@ -661,9 +684,14 @@ export default function Home() {
                         </p>
                       </div>
                     ) : (
-                      messages.map((message) => (
+                      messages.map((message, index) => (
                         <div
                           key={message.id}
+                          ref={
+                            index === messages.length - 1
+                              ? lastMessageRef
+                              : null
+                          }
                           className={`flex gap-3 ${
                             message.role === "user"
                               ? "justify-end"
@@ -701,8 +729,11 @@ export default function Home() {
                         </div>
                       ))
                     )}
-                    {isLoading && (
-                      <div className="flex gap-3 justify-start">
+                                        {isLoading && (
+                      <div
+                        ref={lastMessageRef}
+                        className="flex gap-3 justify-start"
+                      >
                         <Avatar className="w-8 h-8">
                           <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
                             <Brain className="h-4 w-4" />
