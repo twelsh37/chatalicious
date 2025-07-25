@@ -561,7 +561,7 @@ export default function Home() {
 
           <div className="flex-1 flex gap-2 min-h-0 overflow-hidden">
             {/* Left Sidebar - Model Selection & Chat History */}
-            <Card className="w-72 flex-shrink-0 flex flex-col bg-blue-25/30 dark:bg-blue-950/20">
+            <Card className="w-72 flex-shrink-0 flex flex-col bg-blue-25/30 dark:bg-blue-950/20 border-2 border-slate-300 dark:border-slate-600">
               <CardHeader>
                 <CardTitle className="text-lg">Models & Chats</CardTitle>
               </CardHeader>
@@ -575,7 +575,7 @@ export default function Home() {
                     value={selectedModel}
                     onValueChange={setSelectedModel}
                   >
-                    <SelectTrigger className="border border-slate-200 dark:border-slate-700">
+                    <SelectTrigger className="w-full border-2 border-slate-300 dark:border-slate-600">
                       <SelectValue placeholder="Select a model" />
                     </SelectTrigger>
                     <SelectContent>
@@ -606,7 +606,7 @@ export default function Home() {
                 </div>
 
                 {/* Divider */}
-                <div className="border-t border-slate-200 dark:border-slate-700 flex-shrink-0"></div>
+                <div className="border-t-2 border-slate-300 dark:border-slate-600 flex-shrink-0"></div>
 
                 {/* Chat History */}
                 <div className="flex-1 flex flex-col space-y-3 min-h-0 overflow-hidden">
@@ -637,8 +637,8 @@ export default function Home() {
             </Card>
 
             {/* Main Chat Area */}
-            <Card className="flex-1 flex flex-col min-w-0 min-h-0 max-h-full overflow-hidden chat-container bg-blue-25/30 dark:bg-blue-950/20">
-              <CardHeader className="border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+            <Card className="flex-1 flex flex-col min-w-0 min-h-0 max-h-full overflow-hidden chat-container bg-blue-25/30 dark:bg-blue-950/20 border-2 border-slate-300 dark:border-slate-600">
+              <CardHeader className="border-b-2 border-slate-300 dark:border-slate-600 flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-lg">
@@ -665,7 +665,7 @@ export default function Home() {
               <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 {/* Messages */}
                 <ScrollArea
-                  className="flex-1 mb-4 scrollbar-visible border border-slate-200 dark:border-slate-700 rounded-md min-h-0 max-h-full chat-messages"
+                  className="flex-1 mb-4 scrollbar-visible border-2 border-slate-300 dark:border-slate-600 rounded-md min-h-0 max-h-full chat-messages"
                   ref={scrollAreaRef}
                   type="always"
                 >
@@ -764,7 +764,7 @@ export default function Home() {
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Type your message here... (Press Enter to send, Shift+Enter for new line)"
-                    className="flex-1 resize-none border border-slate-200 dark:border-slate-700"
+                    className="flex-1 resize-none border-2 border-slate-300 dark:border-slate-600"
                     rows={3}
                     disabled={!selectedModel || isLoading}
                   />

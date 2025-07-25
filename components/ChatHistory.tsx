@@ -155,7 +155,7 @@ export function ChatHistory({
     <>
       <div className="h-full flex flex-col min-h-0 max-h-full">
         <ScrollArea
-          className="flex-1 scrollbar-visible border border-slate-200 dark:border-slate-700 rounded-md min-h-0 max-h-full"
+          className="flex-1 scrollbar-visible border-2 border-slate-300 dark:border-slate-600 rounded-md min-h-0 max-h-full"
           type="always"
         >
           <div className="space-y-1.5 px-2 py-2">
@@ -168,7 +168,7 @@ export function ChatHistory({
               chats.map((chat) => (
                 <div
                   key={chat.id}
-                  className={`group p-2 rounded-md cursor-pointer transition-colors text-xs border ${
+                  className={`group p-2 rounded-md cursor-pointer transition-colors text-xs border-2 ${
                     selectedChatId === chat.id
                       ? "bg-blue-100 border-blue-300 dark:bg-blue-900 dark:border-blue-600"
                       : "bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900"
