@@ -1,4 +1,4 @@
-# Ollama Chat - Web Interface
+# Chatalicious - Web Interface
 
 A modern, responsive web-based chat interface for local Ollama models built with Next.js, TypeScript, and Shadcn UI.
 
