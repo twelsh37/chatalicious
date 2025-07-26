@@ -15,10 +15,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, User, Brain, MessageSquare, Paperclip } from "lucide-react";
+import { Plus, User, Brain, MessageSquare, Paperclip, Eye } from "lucide-react";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { toast } from "sonner";
 import { ollamaAPI, type Model, type Message as APIMessage } from "@/lib/api";
-import { ModelInfo } from "@/components/ModelInfo";
+import { ModelInfoTooltip } from "@/components/ModelInfoTooltip";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ChatHistory } from "@/components/ChatHistory";
 import { ModelSelectionModal } from "@/components/ModelSelectionModal";
@@ -440,14 +441,18 @@ export default function Home() {
       currentChatId,
     });
 
+    // Determine the chat ID to use
+    let chatId = currentChatId;
+
     // Create new chat if none exists
-    if (!currentChatId) {
+    if (!chatId) {
       console.log("No current chat, creating new one...");
       const newChat = await createNewChat(undefined, undefined);
       if (newChat) {
-        // Set the current chat ID and continue with sending the message
+        // Use the new chat ID directly and update state
+        chatId = newChat.id;
         setCurrentChatId(newChat.id);
-        // Continue with the message sending process
+        setCurrentChat(newChat);
       } else {
         console.error("Failed to create new chat");
         return;
@@ -487,8 +492,6 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      // Get the current chat ID (should already be set from the earlier createNewChat call)
-      const chatId = currentChatId;
       console.log("Using chat ID:", chatId);
       if (!chatId) {
         throw new Error("No chat ID available");
@@ -673,7 +676,7 @@ export default function Home() {
                 <Brain className="h-5 w-5 text-white" />
               </div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                Ollama Chat
+                Chat With The Brain
               </h1>
             </div>
             <div className="flex items-center space-x-2">
@@ -691,6 +694,7 @@ export default function Home() {
               >
                 Refresh Models
               </Button>
+              <ThemeSwitcher />
             </div>
           </div>
 
@@ -700,7 +704,7 @@ export default function Home() {
               <CardHeader>
                 <CardTitle className="text-lg">Models & Chats</CardTitle>
               </CardHeader>
-              <CardContent className="flex-1 flex flex-col space-y-4 overflow-hidden min-h-0">
+              <CardContent className="flex-1 flex flex-col space-y-3 overflow-hidden min-h-0">
                 {/* Model Selection */}
                 <div className="space-y-3 flex-shrink-0">
                   <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -728,7 +732,22 @@ export default function Home() {
                     </SelectContent>
                   </Select>
 
-                  <ModelInfo model={selectedModelData} isVisionModel={isVisionModel} />
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                      Model Info (Hover for details)
+                    </h4>
+                    <ModelInfoTooltip model={selectedModelData} isVisionModel={isVisionModel}>
+                      <div className="flex items-center gap-2 p-2 rounded-md border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-help">
+                        <Brain className="h-4 w-4 text-blue-500" />
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          {selectedModelData ? selectedModelData.name : "Select a model"}
+                        </span>
+                        {isVisionModel && (
+                          <Eye className="h-3 w-3 text-green-500" />
+                        )}
+                      </div>
+                    </ModelInfoTooltip>
+                  </div>
 
                   {models.length === 0 && (
                     <div className="text-center py-4 text-slate-500">
@@ -777,7 +796,7 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-lg">
-                      {currentChat ? currentChat.title : "Chat"}
+                      {currentChat ? currentChat.title : "Chatalicious"}
                     </CardTitle>
                     {currentChat && (
                       <p className="text-sm text-slate-500">

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import "./globals.css";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
   title: "Ollama Chat",
@@ -37,7 +38,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/brain-icon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon-16x16.png" sizes="16x16" type="image/png" />
@@ -46,8 +47,10 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/brain-icon.svg" />
       </head>
       <body className="antialiased">
-        {children}
-        <Toaster position="top-center" richColors />
+        <ThemeProvider defaultTheme="system" storageKey="ollama-chat-theme">
+          {children}
+          <Toaster position="top-center" richColors />
+        </ThemeProvider>
       </body>
     </html>
   );
