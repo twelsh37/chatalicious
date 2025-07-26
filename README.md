@@ -10,6 +10,8 @@ A modern, responsive web-based chat interface for local Ollama models built with
 - **Context Preservation**: Maintain conversation context across sessions
 - **Chat Management**: Create, rename, and delete conversations
 - **Connection Status**: Visual indicator showing connection to Ollama server
+- **Vision Support**: Automatic detection of vision/multimodal models with image upload capability
+- **Image Attachments**: Upload and attach images to messages when using vision models
 - **Responsive Design**: Beautiful, modern UI that works on desktop and mobile
 - **Dark Mode Support**: Automatic dark/light mode based on system preferences
 - **Auto-scroll**: Messages automatically scroll to the latest conversation
@@ -67,6 +69,11 @@ ollama pull llama2
 
 # Or pull a smaller model for testing
 ollama pull llama2:7b
+
+# For vision capabilities, try a multimodal model:
+ollama pull llava
+ollama pull bakllava
+ollama pull qwen-vl
 ```
 
 ### 4. Clone and Setup the Project
@@ -92,9 +99,11 @@ Navigate to [http://localhost:3000](http://localhost:3000) in your browser.
 1. **Select a Model**: Choose from the dropdown in the middle sidebar to select an available Ollama model
 2. **Start a New Chat**: Click the "+" button in the chat history sidebar to create a new conversation
 3. **Chat with Context**: Type your message and press Enter - the conversation will be saved automatically
-4. **Manage Chats**: Use the chat history sidebar to switch between conversations, rename, or delete chats
-5. **View History**: All messages are displayed in the chat area with timestamps and conversation context
-6. **Monitor Connection**: The connection status badge shows if Ollama is reachable
+4. **Vision Models**: When using vision/multimodal models, a paperclip icon appears allowing you to attach images
+5. **Image Attachments**: Click the paperclip icon to select image files (JPG, PNG, GIF, BMP, WebP, TIFF)
+6. **Manage Chats**: Use the chat history sidebar to switch between conversations, rename, or delete chats
+7. **View History**: All messages are displayed in the chat area with timestamps and conversation context
+8. **Monitor Connection**: The connection status badge shows if Ollama is reachable
 
 ## 🔧 Configuration
 
@@ -109,6 +118,23 @@ NEXT_PUBLIC_OLLAMA_API_URL=http://localhost:11434
 # Optional: Custom port for Ollama
 OLLAMA_PORT=11434
 ```
+
+### Vision Model Support
+
+The application automatically detects vision/multimodal models and enables image upload functionality. Supported vision models include:
+
+- **LLaVA family**: `llava`, `llava:7b`, `llava:13b`, etc.
+- **BakLLaVA**: `bakllava`, `bakllava:7b`, etc.
+- **Qwen-VL**: `qwen-vl`, `qwen-vl-chat`, etc.
+- **Gemini**: `gemini`, `gemini-pro-vision`, etc.
+- **Claude-3**: `claude-3`, `claude-3-sonnet`, etc.
+- **GPT-4V**: `gpt-4v`, `gpt4-vision`, etc.
+- **Vision variants**: `llama-vision`, `mistral-vision`, `phi-vision`, etc.
+
+When a vision model is selected, you'll see:
+- A paperclip icon in the chat input area
+- A "Vision & Images" badge in the model information panel
+- The ability to attach image files to your messages
 
 ### Customizing the API Endpoint
 

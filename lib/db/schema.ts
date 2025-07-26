@@ -28,6 +28,7 @@ export const messages = sqliteTable(
       .references(() => chats.id, { onDelete: "cascade" }),
     role: text("role", { enum: ["user", "assistant"] }).notNull(),
     content: text("content").notNull(),
+    images: text("images"), // JSON string of base64 images
     timestamp: integer("timestamp", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),

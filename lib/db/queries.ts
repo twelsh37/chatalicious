@@ -40,7 +40,13 @@ export async function deleteChat(id: string): Promise<void> {
 
 // Message operations
 export async function createMessage(message: NewMessage): Promise<Message> {
-  const [newMessage] = await db.insert(messages).values(message).returning();
+  // Convert images array to JSON string if present
+  const messageData = {
+    ...message,
+    images: message.images ? JSON.stringify(message.images) : null,
+  };
+
+  const [newMessage] = await db.insert(messages).values(messageData).returning();
 
   // Update chat's updatedAt timestamp
   await db
@@ -52,11 +58,17 @@ export async function createMessage(message: NewMessage): Promise<Message> {
 }
 
 export async function getMessagesByChatId(chatId: string): Promise<Message[]> {
-  return await db
+  const dbMessages = await db
     .select()
     .from(messages)
     .where(eq(messages.chatId, chatId))
     .orderBy(asc(messages.order));
+
+  // Parse images JSON string back to array
+  return dbMessages.map(msg => ({
+    ...msg,
+    images: msg.images ? JSON.parse(msg.images) : undefined,
+  }));
 }
 
 export async function getLastMessageOrder(chatId: string): Promise<number> {

@@ -40,7 +40,7 @@ export async function POST(
 ) {
   try {
     await ensureDbInitialized();
-    const { role, content } = await request.json();
+    const { role, content, images } = await request.json();
 
     if (!role || !content) {
       return NextResponse.json(
@@ -65,6 +65,7 @@ export async function POST(
       chatId: id,
       role,
       content,
+      images: images || undefined,
       timestamp: new Date(),
       order: newOrder,
     });

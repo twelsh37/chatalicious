@@ -1,12 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { type Model } from "@/lib/api";
+import { Eye } from "lucide-react";
 
 interface ModelInfoProps {
   model: Model | null;
+  isVisionModel?: boolean;
 }
 
-export function ModelInfo({ model }: ModelInfoProps) {
+export function ModelInfo({ model, isVisionModel = false }: ModelInfoProps) {
   if (!model) {
     return (
       <Card className="bg-blue-25/30 dark:bg-blue-950/20">
@@ -70,6 +72,16 @@ export function ModelInfo({ model }: ModelInfoProps) {
             {model.digest}
           </p>
         </div>
+
+        {isVisionModel && (
+          <div>
+            <h3 className="font-medium text-sm mb-2">Capabilities</h3>
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Eye className="h-3 w-3" />
+              Vision & Images
+            </Badge>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

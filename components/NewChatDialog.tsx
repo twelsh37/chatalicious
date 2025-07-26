@@ -51,9 +51,9 @@ export function NewChatDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (title.trim() && selectedModelLocal) {
+    if (selectedModelLocal && (title.trim() || firstMessage.trim())) {
       onSubmit(
-        title.trim(),
+        title.trim() || undefined,
         firstMessage.trim() || undefined,
         selectedModelLocal
       );
@@ -131,8 +131,7 @@ export function NewChatDialog({
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter a title for this chat"
-                required
+                placeholder="Enter a title for this chat (optional)"
                 disabled={isLoading}
               />
             </div>
@@ -166,7 +165,7 @@ export function NewChatDialog({
               </Button>
               <Button
                 type="submit"
-                disabled={!title.trim() || !selectedModelLocal || isLoading}
+                disabled={!selectedModelLocal || (!title.trim() && !firstMessage.trim()) || isLoading}
                 className="flex-1"
               >
                 {isLoading ? "Creating..." : "Create Chat"}

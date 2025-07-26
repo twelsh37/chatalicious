@@ -28,6 +28,7 @@ export async function initDatabase() {
         chat_id TEXT NOT NULL,
         role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
         content TEXT NOT NULL,
+        images TEXT,
         timestamp INTEGER NOT NULL,
         \`order\` INTEGER NOT NULL,
         FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE

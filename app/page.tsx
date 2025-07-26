@@ -15,7 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, User, Brain, MessageSquare } from "lucide-react";
+import { Plus, User, Brain, MessageSquare, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import { ollamaAPI, type Model, type Message as APIMessage } from "@/lib/api";
 import { ModelInfo } from "@/components/ModelInfo";
@@ -24,12 +24,14 @@ import { ChatHistory } from "@/components/ChatHistory";
 import { ModelSelectionModal } from "@/components/ModelSelectionModal";
 import { NewChatDialog } from "@/components/NewChatDialog";
 import type { Chat as DBChat, Message as DBMessage } from "@/lib/db/schema";
+import { checkVisionCapability, isSupportedImageFile, fileToBase64 } from "@/lib/vision-utils";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  images?: string[]; // Base64 encoded images
 }
 
 export default function Home() {
@@ -42,6 +44,7 @@ export default function Home() {
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [isAPIAvailable, setIsAPIAvailable] = useState(true);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [currentChat, setCurrentChat] = useState<DBChat | null>(null);
   const [chatRefreshTrigger, setChatRefreshTrigger] = useState(0);
@@ -53,6 +56,9 @@ export default function Home() {
     title: string;
     firstMessage?: string;
   } | null>(null);
+  const [isVisionModel, setIsVisionModel] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
 
@@ -60,8 +66,17 @@ export default function Home() {
   const fetchModels = async () => {
     try {
       const data = await ollamaAPI.getModels();
-      setModels(data.models || []);
+      const availableModels = data.models || [];
+      setModels(availableModels);
       setIsConnected(true);
+      
+      // Auto-select a default model if none is selected and models are available
+      if (!selectedModel && availableModels.length > 0) {
+        // Try to find deepseek-r1:8b first, otherwise use the first available model
+        const defaultModel = availableModels.find(model => model.name === 'deepseek-r1:8b') || availableModels[0];
+        console.log("Auto-selecting default model:", defaultModel.name);
+        setSelectedModel(defaultModel.name);
+      }
     } catch (error) {
       console.error("Error fetching models:", error);
       setIsConnected(false);
@@ -71,13 +86,22 @@ export default function Home() {
   // Fetch chats from database
   const fetchChats = async () => {
     try {
+      console.log("Fetching chats...");
       const response = await fetch("/api/chats");
+      console.log("Chats response status:", response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log("Chats fetched:", data.length);
         setChats(data);
+      } else {
+        console.error("Failed to fetch chats:", response.status, response.statusText);
       }
     } catch (error) {
       console.error("Error fetching chats:", error);
+      toast.error("Failed to fetch chats", {
+        description: error instanceof Error ? error.message : "Network error",
+      });
     }
   };
 
@@ -91,8 +115,15 @@ export default function Home() {
       const modelData = models.find((model) => model.name === selectedModel);
       setSelectedModelData(modelData || null);
       console.log("Selected model data:", modelData);
+      
+      // Check if the selected model has vision capabilities
+      checkVisionCapability(selectedModel).then((hasVision) => {
+        setIsVisionModel(hasVision);
+        console.log(`Model ${selectedModel} vision capability:`, hasVision);
+      });
     } else {
       setSelectedModelData(null);
+      setIsVisionModel(false);
     }
   }, [selectedModel, models]);
 
@@ -125,7 +156,17 @@ export default function Home() {
       return null;
     }
 
+    // Check if API is available
+    if (!isAPIAvailable) {
+      toast.error("API not available", {
+        description: "Please check if the development server is running.",
+      });
+      return null;
+    }
+
     try {
+      console.log("Creating new chat with:", { selectedModel, title, firstMessage });
+      
       const response = await fetch("/api/chats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -136,97 +177,16 @@ export default function Home() {
         }),
       });
 
+      console.log("Chat creation response status:", response.status);
+
       if (response.ok) {
         const newChat = await response.json();
+        console.log("New chat created:", newChat);
         setCurrentChatId(newChat.id);
         setCurrentChat(newChat);
         setMessages([]);
         setInputMessage("");
         setChatRefreshTrigger((prev) => prev + 1); // Trigger chat list refresh
-
-        // If a first message was provided, send it and get the response
-        if (firstMessage) {
-          const userMessage: Message = {
-            id: Date.now().toString(),
-            role: "user",
-            content: firstMessage,
-            timestamp: new Date(),
-          };
-
-          setMessages([userMessage]);
-          setIsLoading(true);
-
-          try {
-            // Save user message to database
-            const userResponse = await fetch(
-              `/api/chats/${newChat.id}/messages`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  role: "user",
-                  content: firstMessage,
-                }),
-              }
-            );
-
-            if (!userResponse.ok) {
-              throw new Error(
-                `Failed to save user message: ${userResponse.status}`
-              );
-            }
-
-            // Send to Ollama API
-            const apiMessages: APIMessage[] = [
-              {
-                role: "user",
-                content: firstMessage,
-              },
-            ];
-
-            const data = await ollamaAPI.chat({
-              model: selectedModel,
-              messages: apiMessages,
-              stream: false,
-            });
-
-            const assistantMessage: Message = {
-              id: (Date.now() + 1).toString(),
-              role: "assistant",
-              content: data.message.content,
-              timestamp: new Date(),
-            };
-
-            // Save assistant message to database
-            const assistantResponse = await fetch(
-              `/api/chats/${newChat.id}/messages`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  role: "assistant",
-                  content: data.message.content,
-                }),
-              }
-            );
-
-            if (!assistantResponse.ok) {
-              throw new Error(
-                `Failed to save assistant message: ${assistantResponse.status}`
-              );
-            }
-
-            setMessages([userMessage, assistantMessage]);
-          } catch (error) {
-            console.error("Error sending first message:", error);
-            toast.error("Failed to send first message", {
-              description:
-                "The chat was created but there was an error sending your first message.",
-            });
-          } finally {
-            setIsLoading(false);
-          }
-        }
 
         if (title || firstMessage) {
           toast.success("New chat created", {
@@ -240,8 +200,95 @@ export default function Home() {
       }
     } catch (error) {
       console.error("Error creating new chat:", error);
+      toast.error("Failed to create chat", {
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+      });
     }
     return null;
+  };
+
+  // Send first message to a newly created chat
+  const sendFirstMessage = async (chatId: string, message: string) => {
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: message,
+      timestamp: new Date(),
+    };
+
+    setMessages([userMessage]);
+    setIsLoading(true);
+
+    try {
+      // Save user message to database
+      const userResponse = await fetch(
+        `/api/chats/${chatId}/messages`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            role: "user",
+            content: message,
+          }),
+        }
+      );
+
+      if (!userResponse.ok) {
+        throw new Error(
+          `Failed to save user message: ${userResponse.status}`
+        );
+      }
+
+      // Send to Ollama API
+      const apiMessages: APIMessage[] = [
+        {
+          role: "user",
+          content: message,
+        },
+      ];
+
+      const data = await ollamaAPI.chat({
+        model: selectedModel,
+        messages: apiMessages,
+        stream: false,
+      });
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data.message.content,
+        timestamp: new Date(),
+      };
+
+      // Save assistant message to database
+      const assistantResponse = await fetch(
+        `/api/chats/${chatId}/messages`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            role: "assistant",
+            content: data.message.content,
+          }),
+        }
+      );
+
+      if (!assistantResponse.ok) {
+        throw new Error(
+          `Failed to save assistant message: ${assistantResponse.status}`
+        );
+      }
+
+      setMessages([userMessage, assistantMessage]);
+    } catch (error) {
+      console.error("Error sending first message:", error);
+      toast.error("Failed to send first message", {
+        description:
+          "The chat was created but there was an error sending your first message.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const selectChat = async (chatId: string) => {
@@ -264,6 +311,7 @@ export default function Home() {
             role: msg.role,
             content: msg.content,
             timestamp: new Date(msg.timestamp),
+            images: msg.images ? JSON.parse(msg.images) : undefined,
           })
         );
         setMessages(convertedMessages);
@@ -334,8 +382,11 @@ export default function Home() {
     setIsCreatingChat(true);
 
     try {
-      // If no model is selected, store the data and show the model selection modal
-      if (!modelName) {
+      // Use the provided modelName or fall back to the currently selected model
+      const modelToUse = modelName || selectedModel;
+      
+      // If no model is available, store the data and show the model selection modal
+      if (!modelToUse) {
         setPendingChatData({ title, firstMessage });
         setShowNewChatDialog(false);
         setShowModelModal(true);
@@ -344,28 +395,30 @@ export default function Home() {
       }
 
       // Set the selected model if it's different from current
-      if (modelName !== selectedModel) {
-        setSelectedModel(modelName);
+      if (modelToUse !== selectedModel) {
+        setSelectedModel(modelToUse);
       }
 
-      // Create a new chat
-      await createNewChat(title, firstMessage);
+      // Create a new chat (without first message)
+      const newChat = await createNewChat(title, undefined);
 
-      if (title && title.trim()) {
-        toast.success("New chat created", {
-          description: `Created "${title}" with ${modelName}`,
-        });
+      if (newChat && firstMessage) {
+        // Close the dialog immediately after chat creation
+        setShowNewChatDialog(false);
+        setIsCreatingChat(false);
+        
+        // Send the first message asynchronously
+        sendFirstMessage(newChat.id, firstMessage);
       } else {
-        toast.success("New chat created", {
-          description: "A new chat has been started.",
-        });
+        // No first message, just close the dialog
+        setShowNewChatDialog(false);
+        setIsCreatingChat(false);
       }
     } catch (error) {
       console.error("Error saving chat:", error);
       toast.error("Failed to save chat", {
         description: "There was an error saving your chat. Please try again.",
       });
-    } finally {
       setIsCreatingChat(false);
       setShowNewChatDialog(false);
     }
@@ -373,7 +426,7 @@ export default function Home() {
 
   // Send message to Ollama
   const sendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+    if ((!inputMessage.trim() && selectedFiles.length === 0) || isLoading) return;
 
     if (!selectedModel) {
       setShowModelModal(true);
@@ -382,6 +435,7 @@ export default function Home() {
 
     console.log("Sending message:", {
       inputMessage,
+      selectedFiles: selectedFiles.length,
       selectedModel,
       currentChatId,
     });
@@ -389,7 +443,7 @@ export default function Home() {
     // Create new chat if none exists
     if (!currentChatId) {
       console.log("No current chat, creating new one...");
-      const newChat = await createNewChat(undefined, inputMessage);
+      const newChat = await createNewChat(undefined, undefined);
       if (newChat) {
         // Set the current chat ID and continue with sending the message
         setCurrentChatId(newChat.id);
@@ -400,21 +454,41 @@ export default function Home() {
       }
     }
 
+    // Prepare message content and images
+    let messageContent = inputMessage;
+    let messageImages: string[] = [];
+
+    if (selectedFiles.length > 0) {
+      // Convert images to base64
+      try {
+        messageImages = await Promise.all(
+          selectedFiles.map(file => fileToBase64(file))
+        );
+        console.log(`Converted ${selectedFiles.length} images to base64`);
+      } catch (error) {
+        console.error("Error converting images to base64:", error);
+        toast.error("Failed to process images", {
+          description: "There was an error processing your images. Please try again.",
+        });
+        return;
+      }
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: inputMessage,
+      content: messageContent,
       timestamp: new Date(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setInputMessage("");
+    setSelectedFiles([]);
     setIsLoading(true);
 
     try {
-      // Get the current chat ID (might have been just created)
-      const chatId =
-        currentChatId || (await createNewChat(undefined, undefined))?.id;
+      // Get the current chat ID (should already be set from the earlier createNewChat call)
+      const chatId = currentChatId;
       console.log("Using chat ID:", chatId);
       if (!chatId) {
         throw new Error("No chat ID available");
@@ -427,7 +501,8 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           role: "user",
-          content: inputMessage,
+          content: messageContent,
+          ...(messageImages.length > 0 && { images: messageImages }),
         }),
       });
 
@@ -442,52 +517,58 @@ export default function Home() {
         })),
         {
           role: "user",
-          content: inputMessage,
+          content: messageContent,
+          ...(messageImages.length > 0 && { images: messageImages }),
         },
       ];
 
       console.log("Sending to Ollama API:", {
         model: selectedModel,
         messages: apiMessages,
+        hasImages: messageImages.length > 0,
+        imageCount: messageImages.length,
+        messageContent: messageContent,
       });
-      const data = await ollamaAPI.chat({
-        model: selectedModel,
-        messages: apiMessages,
-        stream: false,
-      });
+      
+        console.log("Making Ollama API call...");
+        const data = await ollamaAPI.chat({
+          model: selectedModel,
+          messages: apiMessages,
+          stream: false,
+        });
 
-      console.log("Received response from Ollama:", data);
+        console.log("Received response from Ollama:", data);
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: data.message.content,
-        timestamp: new Date(),
-      };
-
-      console.log("Saving assistant message to database...");
-      // Save assistant message to database
-      const assistantResponse = await fetch(`/api/chats/${chatId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
           role: "assistant",
           content: data.message.content,
-        }),
-      });
+          timestamp: new Date(),
+        };
 
-      if (!assistantResponse.ok) {
-        throw new Error(
-          `Failed to save assistant message: ${assistantResponse.status}`
-        );
-      }
+        console.log("Saving assistant message to database...");
+        // Save assistant message to database
+        const assistantResponse = await fetch(`/api/chats/${chatId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            role: "assistant",
+            content: data.message.content,
+          }),
+        });
 
-      setMessages((prev) => [...prev, assistantMessage]);
-      console.log("Message flow completed successfully");
+        if (!assistantResponse.ok) {
+          throw new Error(
+            `Failed to save assistant message: ${assistantResponse.status}`
+          );
+        }
 
-      toast.success("Message sent", {
-        description: "Your message has been sent and the response received.",
-      });
+        setMessages((prev) => [...prev, assistantMessage]);
+        console.log("Message flow completed successfully");
+
+        toast.success("Message sent", {
+          description: "Your message has been sent and the response received.",
+        });
     } catch (error) {
       console.error("Error sending message:", error);
       // Add user-friendly error handling
@@ -500,6 +581,38 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handle file selection
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    const validFiles = files.filter(file => isSupportedImageFile(file));
+    
+    if (validFiles.length !== files.length) {
+      toast.error("Some files were not supported", {
+        description: "Only image files (JPG, PNG, GIF, BMP, WebP, TIFF) are supported.",
+      });
+    }
+    
+    if (validFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...validFiles]);
+      toast.success("Images added", {
+        description: `${validFiles.length} image(s) added to your message.`,
+      });
+    }
+    
+    // Reset the input
+    if (event.target) {
+      event.target.value = '';
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handlePaperclipClick = () => {
+    fileInputRef.current?.click();
   };
 
   // Handle Enter key press
@@ -517,8 +630,27 @@ export default function Home() {
     }
   }, [messages]);
 
+  // Health check function
+  const checkAPIHealth = async () => {
+    try {
+      const response = await fetch("/api/health");
+      if (response.ok) {
+        const data = await response.json();
+        console.log("API health check:", data);
+        setIsAPIAvailable(true);
+      } else {
+        console.error("API health check failed:", response.status);
+        setIsAPIAvailable(false);
+      }
+    } catch (error) {
+      console.error("API health check error:", error);
+      setIsAPIAvailable(false);
+    }
+  };
+
   // Fetch models and chats on component mount
   useEffect(() => {
+    checkAPIHealth(); // Check API health first
     fetchModels();
     fetchChats();
     const interval = setInterval(fetchModels, 30000); // Refresh every 30 seconds
@@ -547,6 +679,9 @@ export default function Home() {
             <div className="flex items-center space-x-2">
               <Badge variant={isConnected ? "default" : "destructive"}>
                 {isConnected ? "Connected" : "Disconnected"}
+              </Badge>
+              <Badge variant={isAPIAvailable ? "default" : "destructive"}>
+                {isAPIAvailable ? "API OK" : "API Error"}
               </Badge>
               <Button
                 variant="outline"
@@ -593,7 +728,7 @@ export default function Home() {
                     </SelectContent>
                   </Select>
 
-                  <ModelInfo model={selectedModelData} />
+                  <ModelInfo model={selectedModelData} isVisionModel={isVisionModel} />
 
                   {models.length === 0 && (
                     <div className="text-center py-4 text-slate-500">
@@ -715,6 +850,23 @@ export default function Home() {
                             <p className="text-sm whitespace-pre-wrap">
                               {message.content}
                             </p>
+                            {message.images && message.images.length > 0 && (
+                              <div className="mt-2 space-y-2">
+                                <div className="text-xs text-slate-500">
+                                  📎 {message.images.length} image{message.images.length > 1 ? 's' : ''} attached
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {message.images.map((image, index) => (
+                                    <img
+                                      key={index}
+                                      src={`data:image/jpeg;base64,${image}`}
+                                      alt={`Attached image ${index + 1}`}
+                                      className="w-16 h-16 object-cover rounded border"
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                             <p className="text-xs mt-1 opacity-70">
                               {message.timestamp.toLocaleTimeString()}
                             </p>
@@ -759,24 +911,65 @@ export default function Home() {
 
                 {/* Input Area */}
                 <div className="flex gap-2 flex-shrink-0">
-                  <Textarea
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Type your message here... (Press Enter to send, Shift+Enter for new line)"
-                    className="flex-1 resize-none border-2 border-slate-300 dark:border-slate-600"
-                    rows={3}
-                    disabled={!selectedModel || isLoading}
-                  />
-                  <Button
-                    onClick={sendMessage}
-                    disabled={
-                      !inputMessage.trim() || !selectedModel || isLoading
-                    }
-                    className="self-end"
-                  >
-                    Send
-                  </Button>
+                  <div className="flex-1 flex flex-col gap-2">
+                    {/* File attachments display */}
+                    {selectedFiles.length > 0 && (
+                      <div className="flex flex-wrap gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
+                        {selectedFiles.map((file, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-2 bg-white dark:bg-slate-700 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-600"
+                          >
+                            <span className="text-xs text-slate-600 dark:text-slate-400">
+                              {file.name}
+                            </span>
+                            <button
+                              onClick={() => removeFile(index)}
+                              className="text-red-500 hover:text-red-700 text-xs"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Text input and buttons */}
+                    <div className="flex gap-2">
+                      <Textarea
+                        value={inputMessage}
+                        onChange={(e) => setInputMessage(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        placeholder="Type your message here... (Press Enter to send, Shift+Enter for new line)"
+                        className="flex-1 resize-none border-2 border-slate-300 dark:border-slate-600"
+                        rows={3}
+                        disabled={!selectedModel || isLoading}
+                      />
+                      <div className="flex flex-col gap-2">
+                        {isVisionModel && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handlePaperclipClick}
+                            disabled={!selectedModel || isLoading}
+                            className="h-10 w-10 p-0"
+                            title="Attach image"
+                          >
+                            <Paperclip className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          onClick={sendMessage}
+                          disabled={
+                            (!inputMessage.trim() && selectedFiles.length === 0) || !selectedModel || isLoading
+                          }
+                          className="self-end"
+                        >
+                          {selectedFiles.length > 0 ? `Send with ${selectedFiles.length} image${selectedFiles.length > 1 ? 's' : ''}` : 'Send'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -798,6 +991,16 @@ export default function Home() {
         models={models}
         onModelSelect={handleModelSelect}
         onCancel={handleModelModalCancel}
+      />
+
+      {/* Hidden file input for image uploads */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
       />
     </ErrorBoundary>
   );

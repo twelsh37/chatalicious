@@ -8,6 +8,7 @@ export interface Model {
 export interface Message {
   role: "user" | "assistant";
   content: string;
+  images?: string[]; // Base64 encoded images for vision models
 }
 
 export interface ChatRequest {
