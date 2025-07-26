@@ -6,8 +6,8 @@ export async function migrateDatabase() {
     
     // Check if images column exists using a more reliable method
     const tableInfo = await db.run("PRAGMA table_info(messages)");
-    const columns = tableInfo.results || [];
-    const hasImagesColumn = columns.some((row: any) => row.name === 'images');
+    const columns = tableInfo.rows || [];
+          const hasImagesColumn = columns.some((row: unknown) => (row as { name: string }).name === 'images');
     
     if (!hasImagesColumn) {
       console.log("Adding images column to messages table...");

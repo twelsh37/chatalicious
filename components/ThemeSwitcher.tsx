@@ -26,18 +26,18 @@ export function ThemeSwitcher() {
     }
   };
 
-  const getThemeLabel = () => {
-    switch (theme) {
-      case "light":
-        return "Light";
-      case "dark":
-        return "Dark";
-      case "system":
-        return "System";
-      default:
-        return "System";
-    }
-  };
+  // const getThemeLabel = () => {
+  //   switch (theme) {
+  //     case "light":
+  //       return "Light";
+  //     case "dark":
+  //       return "Dark";
+  //     case "system":
+  //       return "System";
+  //     default:
+  //       return "System";
+  //   }
+  // };
 
   return (
     <DropdownMenu>

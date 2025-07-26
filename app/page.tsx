@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -24,6 +24,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ChatHistory } from "@/components/ChatHistory";
 import { ModelSelectionModal } from "@/components/ModelSelectionModal";
 import { NewChatDialog } from "@/components/NewChatDialog";
+import { VoiceRecognition } from "@/components/VoiceRecognition";
 import type { Chat as DBChat, Message as DBMessage } from "@/lib/db/schema";
 import { checkVisionCapability, isSupportedImageFile, fileToBase64 } from "@/lib/vision-utils";
 
@@ -64,7 +65,7 @@ export default function Home() {
   const lastMessageRef = useRef<HTMLDivElement>(null);
 
   // Fetch available models
-  const fetchModels = async () => {
+  const fetchModels = useCallback(async () => {
     try {
       const data = await ollamaAPI.getModels();
       const availableModels = data.models || [];
@@ -82,7 +83,7 @@ export default function Home() {
       console.error("Error fetching models:", error);
       setIsConnected(false);
     }
-  };
+  }, [selectedModel]);
 
   // Fetch chats from database
   const fetchChats = async () => {
@@ -460,7 +461,7 @@ export default function Home() {
     }
 
     // Prepare message content and images
-    let messageContent = inputMessage;
+    const messageContent = inputMessage;
     let messageImages: string[] = [];
 
     if (selectedFiles.length > 0) {
@@ -618,6 +619,28 @@ export default function Home() {
     fileInputRef.current?.click();
   };
 
+  // Handle voice input
+  const handleVoiceInput = (transcript: string) => {
+    console.log("Voice input received:", transcript);
+    console.log("Setting input message to:", transcript);
+    setInputMessage(transcript);
+    console.log("Input message should now be:", transcript);
+    // Optionally auto-send the message after voice input
+    // Uncomment the next line if you want to auto-send voice messages
+    // sendMessage();
+  };
+
+  // Debug: Monitor inputMessage changes
+  useEffect(() => {
+    console.log("Input message changed to:", inputMessage);
+  }, [inputMessage]);
+
+  // Handle voice input error
+  const handleVoiceError = (error: string) => {
+    console.error("Voice recognition error:", error);
+    // Error is already handled by the VoiceRecognition component with toast
+  };
+
   // Handle Enter key press
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -658,7 +681,7 @@ export default function Home() {
     fetchChats();
     const interval = setInterval(fetchModels, 30000); // Refresh every 30 seconds
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchModels]);
 
   // Fetch chats when refresh trigger changes
   useEffect(() => {
@@ -697,6 +720,8 @@ export default function Home() {
               <ThemeSwitcher />
             </div>
           </div>
+
+          
 
           <div className="flex-1 flex gap-2 min-h-0 overflow-hidden">
             {/* Left Sidebar - Model Selection & Chat History */}
@@ -874,15 +899,16 @@ export default function Home() {
                                 <div className="text-xs text-slate-500">
                                   📎 {message.images.length} image{message.images.length > 1 ? 's' : ''} attached
                                 </div>
-                                <div className="flex flex-wrap gap-2">
-                                  {message.images.map((image, index) => (
-                                    <img
-                                      key={index}
-                                      src={`data:image/jpeg;base64,${image}`}
-                                      alt={`Attached image ${index + 1}`}
-                                      className="w-16 h-16 object-cover rounded border"
-                                    />
-                                  ))}
+                                                                  <div className="flex flex-wrap gap-2">
+                                    {message.images.map((image, index) => (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <img
+                                        key={index}
+                                        src={`data:image/jpeg;base64,${image}`}
+                                        alt={`Attached image ${index + 1}`}
+                                        className="w-16 h-16 object-cover rounded border"
+                                      />
+                                    ))}
                                 </div>
                               </div>
                             )}
@@ -965,6 +991,11 @@ export default function Home() {
                         disabled={!selectedModel || isLoading}
                       />
                       <div className="flex flex-col gap-2">
+                        <VoiceRecognition
+                          onTranscript={handleVoiceInput}
+                          onError={handleVoiceError}
+                          disabled={!selectedModel || isLoading}
+                        />
                         {isVisionModel && (
                           <Button
                             variant="outline"

@@ -53,7 +53,7 @@ export function NewChatDialog({
     e.preventDefault();
     if (selectedModelLocal && (title.trim() || firstMessage.trim())) {
       onSubmit(
-        title.trim() || undefined,
+        title?.trim() || "",
         firstMessage.trim() || undefined,
         selectedModelLocal
       );

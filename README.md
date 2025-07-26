@@ -12,6 +12,7 @@ A modern, responsive web-based chat interface for local Ollama models built with
 - **Connection Status**: Visual indicator showing connection to Ollama server
 - **Vision Support**: Automatic detection of vision/multimodal models with image upload capability
 - **Image Attachments**: Upload and attach images to messages when using vision models
+- **Voice Input**: Click microphone to start recording, click again to stop - converts speech to text
 - **Responsive Design**: Beautiful, modern UI that works on desktop and mobile
 - **Dark Mode Support**: Automatic dark/light mode based on system preferences
 - **Auto-scroll**: Messages automatically scroll to the latest conversation
@@ -34,7 +35,8 @@ Before running this application, make sure you have:
 
 1. **Node.js** (version 18 or higher)
 2. **Ollama** installed and running locally
-3. **Yarn** package manager
+3. **Yarn** package manager (or npm)
+4. **Modern browser** with microphone support (Chrome, Edge, Safari recommended)
 
 ## 🚀 Getting Started
 
@@ -85,25 +87,77 @@ cd ollama-chat
 
 # Install dependencies
 yarn install
+# or with npm: npm install
 
 # Start the development server
 yarn dev
+# or with npm: npm run dev
 ```
 
 ### 5. Open the Application
 
 Navigate to [http://localhost:3000](http://localhost:3000) in your browser.
 
+## 🚀 Production Deployment
+
+### Build for Production
+
+```bash
+# Build the application
+yarn build
+# or with npm: npm run build
+
+# Start the production server
+yarn start
+# or with npm: npm start
+```
+
+### Environment Variables for Production
+
+Create a `.env.production` file for production settings:
+
+```env
+# Ollama API URL (adjust if running on different host)
+NEXT_PUBLIC_OLLAMA_API_URL=http://your-ollama-host:11434
+
+# Database path (optional)
+DATABASE_URL=file:./data/chat.db
+```
+
+### Docker Deployment (Optional)
+
+```dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+RUN npm run build
+
+EXPOSE 3000
+
+CMD ["npm", "start"]
+```
+
 ## 🎯 Usage
 
 1. **Select a Model**: Choose from the dropdown in the middle sidebar to select an available Ollama model
 2. **Start a New Chat**: Click the "+" button in the chat history sidebar to create a new conversation
 3. **Chat with Context**: Type your message and press Enter - the conversation will be saved automatically
-4. **Vision Models**: When using vision/multimodal models, a paperclip icon appears allowing you to attach images
-5. **Image Attachments**: Click the paperclip icon to select image files (JPG, PNG, GIF, BMP, WebP, TIFF)
-6. **Manage Chats**: Use the chat history sidebar to switch between conversations, rename, or delete chats
-7. **View History**: All messages are displayed in the chat area with timestamps and conversation context
-8. **Monitor Connection**: The connection status badge shows if Ollama is reachable
+4. **Voice Input**: 
+   - Click the microphone button (it turns red and pulses)
+   - Speak your question clearly
+   - Click the microphone button again to stop recording
+   - The transcript appears in the input field
+   - Click "Send" to send your message
+5. **Vision Models**: When using vision/multimodal models, a paperclip icon appears allowing you to attach images
+6. **Image Attachments**: Click the paperclip icon to select image files (JPG, PNG, GIF, BMP, WebP, TIFF)
+7. **Manage Chats**: Use the chat history sidebar to switch between conversations, rename, or delete chats
+8. **View History**: All messages are displayed in the chat area with timestamps and conversation context
+9. **Monitor Connection**: The connection status badge shows if Ollama is reachable
 
 ## 🔧 Configuration
 
@@ -118,6 +172,18 @@ NEXT_PUBLIC_OLLAMA_API_URL=http://localhost:11434
 # Optional: Custom port for Ollama
 OLLAMA_PORT=11434
 ```
+
+### Voice Input Support
+
+The application includes voice input functionality using the Web Speech API:
+
+- **Browser Support**: Works in Chrome, Edge, Safari, and other modern browsers
+- **Microphone Permission**: Users will be prompted to allow microphone access
+- **Manual Control**: Click to start recording, click again to stop - no automatic timeouts
+- **Real-time Feedback**: Button turns red and pulses while recording
+- **Speech Recognition**: Converts spoken words to text automatically
+- **Error Handling**: Provides helpful error messages for common issues
+- **Professional Mics**: Works with professional microphones and audio interfaces
 
 ### Vision Model Support
 
@@ -236,6 +302,15 @@ For more information, see the [Ollama API documentation](https://github.com/olla
 3. **CORS errors**
    - Ollama should handle CORS automatically
    - If issues persist, check browser console for specific errors
+
+4. **Voice input issues**
+   - Check microphone volume: Make sure your microphone is not muted
+   - Speak clearly: Enunciate your words and speak at a normal volume
+   - Reduce background noise: Try in a quieter environment
+   - Check browser settings: Ensure microphone access is allowed
+   - Try different browsers: Chrome and Edge work best for speech recognition
+   - Professional microphones: Works with audio interfaces like Focusrite, GoXLR, etc.
+   - Wait for the prompt: Make sure you see "Listening..." before speaking
 
 ### Debug Mode
 

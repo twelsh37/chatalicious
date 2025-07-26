@@ -105,7 +105,44 @@ ollama pull llava
 curl http://localhost:11434/api/tags
 ```
 
-### 3. Vision Model Detection Issues
+### 3. Voice Input Issues
+
+**Symptoms:**
+- Microphone button is disabled
+- "Voice input not supported" error
+- "Microphone access denied" error
+- Speech recognition not working
+
+**Solutions:**
+
+#### A. Check Browser Support
+Voice input requires a modern browser:
+- **Chrome** (recommended)
+- **Edge**
+- **Safari**
+- **Firefox** (limited support)
+
+#### B. Check Microphone Permission
+1. Click the microphone button
+2. Allow microphone access when prompted
+3. If denied, click the microphone icon in the address bar and allow access
+
+#### C. Check Console Logs
+Look for voice-related messages in browser console:
+```
+Speech recognition is not supported in this browser
+Microphone permission denied
+```
+
+#### D. Manual Permission Check
+```javascript
+// In browser console
+navigator.mediaDevices.getUserMedia({ audio: true })
+  .then(stream => console.log('Microphone access granted'))
+  .catch(err => console.log('Microphone access denied:', err));
+```
+
+### 4. Vision Model Detection Issues
 
 **Symptoms:**
 - Paperclip icon doesn't appear for vision models
