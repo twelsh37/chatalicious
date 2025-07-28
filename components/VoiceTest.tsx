@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { isSpeechRecognitionSupported, requestMicrophonePermission } from "@/lib/voice-utils";
 
 export function VoiceTest() {
-  const [browserInfo, setBrowserInfo] = useState<any>({});
+  const [browserInfo, setBrowserInfo] = useState<Record<string, unknown>>({});
   const [microphoneStatus, setMicrophoneStatus] = useState<string>("Checking...");
 
   useEffect(() => {
@@ -61,19 +61,19 @@ export function VoiceTest() {
             <p><strong>Standard Speech Recognition:</strong> {browserInfo.hasSpeechRecognition ? "✅ Available" : "❌ Not available"}</p>
             <p><strong>Media Devices:</strong> {browserInfo.hasMediaDevices ? "✅ Available" : "❌ Not available"}</p>
             <p><strong>Get User Media:</strong> {browserInfo.hasGetUserMedia ? "✅ Available" : "❌ Not available"}</p>
-            <p><strong>Protocol:</strong> {browserInfo.protocol}</p>
-            <p><strong>Hostname:</strong> {browserInfo.hostname}</p>
-            <p><strong>Online:</strong> {browserInfo.onLine ? "✅ Yes" : "❌ No"}</p>
+            <p><strong>Protocol:</strong> {String(browserInfo.protocol)}</p>
+            <p><strong>Hostname:</strong> {String(browserInfo.hostname)}</p>
+            <p><strong>Online:</strong> {Boolean(browserInfo.onLine) ? "✅ Yes" : "❌ No"}</p>
           </div>
         </div>
         
         <div>
           <h3 className="font-semibold mb-2">Browser Info:</h3>
           <div className="text-sm space-y-1">
-            <p><strong>User Agent:</strong> {browserInfo.userAgent}</p>
-            <p><strong>Vendor:</strong> {browserInfo.vendor}</p>
-            <p><strong>Platform:</strong> {browserInfo.platform}</p>
-            <p><strong>Language:</strong> {browserInfo.language}</p>
+            <p><strong>User Agent:</strong> {String(browserInfo.userAgent)}</p>
+            <p><strong>Vendor:</strong> {String(browserInfo.vendor)}</p>
+            <p><strong>Platform:</strong> {String(browserInfo.platform)}</p>
+            <p><strong>Language:</strong> {String(browserInfo.language)}</p>
           </div>
         </div>
         

@@ -74,22 +74,22 @@ export function NewChatDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <Card className="w-96 max-w-[90vw] mx-4">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <CardTitle className="text-lg">Create New Chat</CardTitle>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-md mx-auto max-h-[90vh] overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-4 sm:px-6">
+          <CardTitle className="text-lg sm:text-xl">Create New Chat</CardTitle>
           <Button
             variant="ghost"
             size="sm"
             onClick={handleCancel}
-            className="h-6 w-6 p-0"
+            className="h-8 w-8 p-0 touch-manipulation"
           >
             <X className="h-4 w-4" />
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 sm:px-6 pb-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label
                 htmlFor="model"
                 className="text-sm font-medium text-slate-700 dark:text-slate-300"
@@ -101,18 +101,26 @@ export function NewChatDialog({
                 onValueChange={setSelectedModelLocal}
                 disabled={isLoading}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-12 text-base">
                   <SelectValue placeholder="Select a model" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-60">
                   {models.map((model) => (
-                    <SelectItem key={model.name} value={model.name}>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{model.name}</span>
-                        <span className="text-xs text-slate-500">
-                          {model.size} •{" "}
-                          {new Date(model.modified_at).toLocaleDateString()}
-                        </span>
+                    <SelectItem
+                      key={model.name}
+                      value={model.name}
+                      className="py-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="font-medium truncate">
+                            {model.name}
+                          </span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                            {model.size} •{" "}
+                            {new Date(model.modified_at).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
                     </SelectItem>
                   ))}
@@ -120,7 +128,7 @@ export function NewChatDialog({
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label
                 htmlFor="title"
                 className="text-sm font-medium text-slate-700 dark:text-slate-300"
@@ -133,10 +141,11 @@ export function NewChatDialog({
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Enter a title for this chat (optional)"
                 disabled={isLoading}
+                className="h-12 text-base"
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label
                 htmlFor="firstMessage"
                 className="text-sm font-medium text-slate-700 dark:text-slate-300"
@@ -148,25 +157,30 @@ export function NewChatDialog({
                 value={firstMessage}
                 onChange={(e) => setFirstMessage(e.target.value)}
                 placeholder="Enter your first message to start the conversation..."
-                rows={3}
+                rows={4}
                 disabled={isLoading}
+                className="text-base resize-none"
               />
             </div>
 
-            <div className="flex gap-2 pt-2">
+            <div className="flex gap-3 pt-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleCancel}
                 disabled={isLoading}
-                className="flex-1"
+                className="flex-1 h-12 sm:h-10"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                disabled={!selectedModelLocal || (!title.trim() && !firstMessage.trim()) || isLoading}
-                className="flex-1"
+                disabled={
+                  !selectedModelLocal ||
+                  (!title.trim() && !firstMessage.trim()) ||
+                  isLoading
+                }
+                className="flex-1 h-12 sm:h-10"
               >
                 {isLoading ? "Creating..." : "Create Chat"}
               </Button>

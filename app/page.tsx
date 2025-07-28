@@ -15,7 +15,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, User, Brain, MessageSquare, Paperclip, Eye } from "lucide-react";
+import {
+  Plus,
+  User,
+  Brain,
+  MessageSquare,
+  Paperclip,
+  Eye,
+  Menu,
+  X,
+} from "lucide-react";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { toast } from "sonner";
 import { ollamaAPI, type Model, type Message as APIMessage } from "@/lib/api";
@@ -26,7 +35,11 @@ import { ModelSelectionModal } from "@/components/ModelSelectionModal";
 import { NewChatDialog } from "@/components/NewChatDialog";
 import { VoiceRecognition } from "@/components/VoiceRecognition";
 import type { Chat as DBChat, Message as DBMessage } from "@/lib/db/schema";
-import { checkVisionCapability, isSupportedImageFile, fileToBase64 } from "@/lib/vision-utils";
+import {
+  checkVisionCapability,
+  isSupportedImageFile,
+  fileToBase64,
+} from "@/lib/vision-utils";
 
 interface Message {
   id: string;
@@ -60,6 +73,7 @@ export default function Home() {
   } | null>(null);
   const [isVisionModel, setIsVisionModel] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
@@ -71,11 +85,13 @@ export default function Home() {
       const availableModels = data.models || [];
       setModels(availableModels);
       setIsConnected(true);
-      
+
       // Auto-select a default model if none is selected and models are available
       if (!selectedModel && availableModels.length > 0) {
         // Try to find deepseek-r1:8b first, otherwise use the first available model
-        const defaultModel = availableModels.find(model => model.name === 'deepseek-r1:8b') || availableModels[0];
+        const defaultModel =
+          availableModels.find((model) => model.name === "deepseek-r1:8b") ||
+          availableModels[0];
         console.log("Auto-selecting default model:", defaultModel.name);
         setSelectedModel(defaultModel.name);
       }
@@ -91,13 +107,17 @@ export default function Home() {
       console.log("Fetching chats...");
       const response = await fetch("/api/chats");
       console.log("Chats response status:", response.status);
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log("Chats fetched:", data.length);
         setChats(data);
       } else {
-        console.error("Failed to fetch chats:", response.status, response.statusText);
+        console.error(
+          "Failed to fetch chats:",
+          response.status,
+          response.statusText
+        );
       }
     } catch (error) {
       console.error("Error fetching chats:", error);
@@ -117,7 +137,7 @@ export default function Home() {
       const modelData = models.find((model) => model.name === selectedModel);
       setSelectedModelData(modelData || null);
       console.log("Selected model data:", modelData);
-      
+
       // Check if the selected model has vision capabilities
       checkVisionCapability(selectedModel).then((hasVision) => {
         setIsVisionModel(hasVision);
@@ -139,7 +159,9 @@ export default function Home() {
         });
       } else if (scrollAreaRef.current) {
         // Fallback: scroll the scroll area to bottom
-        const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+        const scrollElement = scrollAreaRef.current.querySelector(
+          "[data-radix-scroll-area-viewport]"
+        );
         if (scrollElement) {
           scrollElement.scrollTop = scrollElement.scrollHeight;
         }
@@ -167,8 +189,12 @@ export default function Home() {
     }
 
     try {
-      console.log("Creating new chat with:", { selectedModel, title, firstMessage });
-      
+      console.log("Creating new chat with:", {
+        selectedModel,
+        title,
+        firstMessage,
+      });
+
       const response = await fetch("/api/chats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -203,7 +229,10 @@ export default function Home() {
     } catch (error) {
       console.error("Error creating new chat:", error);
       toast.error("Failed to create chat", {
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        description:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred",
       });
     }
     return null;
@@ -223,22 +252,17 @@ export default function Home() {
 
     try {
       // Save user message to database
-      const userResponse = await fetch(
-        `/api/chats/${chatId}/messages`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            role: "user",
-            content: message,
-          }),
-        }
-      );
+      const userResponse = await fetch(`/api/chats/${chatId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: "user",
+          content: message,
+        }),
+      });
 
       if (!userResponse.ok) {
-        throw new Error(
-          `Failed to save user message: ${userResponse.status}`
-        );
+        throw new Error(`Failed to save user message: ${userResponse.status}`);
       }
 
       // Send to Ollama API
@@ -263,17 +287,14 @@ export default function Home() {
       };
 
       // Save assistant message to database
-      const assistantResponse = await fetch(
-        `/api/chats/${chatId}/messages`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            role: "assistant",
-            content: data.message.content,
-          }),
-        }
-      );
+      const assistantResponse = await fetch(`/api/chats/${chatId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: "assistant",
+          content: data.message.content,
+        }),
+      });
 
       if (!assistantResponse.ok) {
         throw new Error(
@@ -320,6 +341,8 @@ export default function Home() {
       }
 
       setCurrentChatId(chatId);
+      // Close sidebar on mobile after selecting a chat
+      setSidebarOpen(false);
     } catch (error) {
       console.error("Error selecting chat:", error);
     }
@@ -386,7 +409,7 @@ export default function Home() {
     try {
       // Use the provided modelName or fall back to the currently selected model
       const modelToUse = modelName || selectedModel;
-      
+
       // If no model is available, store the data and show the model selection modal
       if (!modelToUse) {
         setPendingChatData({ title, firstMessage });
@@ -408,7 +431,7 @@ export default function Home() {
         // Close the dialog immediately after chat creation
         setShowNewChatDialog(false);
         setIsCreatingChat(false);
-        
+
         // Send the first message asynchronously
         sendFirstMessage(newChat.id, firstMessage);
       } else {
@@ -428,7 +451,8 @@ export default function Home() {
 
   // Send message to Ollama
   const sendMessage = async () => {
-    if ((!inputMessage.trim() && selectedFiles.length === 0) || isLoading) return;
+    if ((!inputMessage.trim() && selectedFiles.length === 0) || isLoading)
+      return;
 
     if (!selectedModel) {
       setShowModelModal(true);
@@ -468,13 +492,14 @@ export default function Home() {
       // Convert images to base64
       try {
         messageImages = await Promise.all(
-          selectedFiles.map(file => fileToBase64(file))
+          selectedFiles.map((file) => fileToBase64(file))
         );
         console.log(`Converted ${selectedFiles.length} images to base64`);
       } catch (error) {
         console.error("Error converting images to base64:", error);
         toast.error("Failed to process images", {
-          description: "There was an error processing your images. Please try again.",
+          description:
+            "There was an error processing your images. Please try again.",
         });
         return;
       }
@@ -533,46 +558,46 @@ export default function Home() {
         imageCount: messageImages.length,
         messageContent: messageContent,
       });
-      
-        console.log("Making Ollama API call...");
-        const data = await ollamaAPI.chat({
-          model: selectedModel,
-          messages: apiMessages,
-          stream: false,
-        });
 
-        console.log("Received response from Ollama:", data);
+      console.log("Making Ollama API call...");
+      const data = await ollamaAPI.chat({
+        model: selectedModel,
+        messages: apiMessages,
+        stream: false,
+      });
 
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
+      console.log("Received response from Ollama:", data);
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data.message.content,
+        timestamp: new Date(),
+      };
+
+      console.log("Saving assistant message to database...");
+      // Save assistant message to database
+      const assistantResponse = await fetch(`/api/chats/${chatId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           role: "assistant",
           content: data.message.content,
-          timestamp: new Date(),
-        };
+        }),
+      });
 
-        console.log("Saving assistant message to database...");
-        // Save assistant message to database
-        const assistantResponse = await fetch(`/api/chats/${chatId}/messages`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            role: "assistant",
-            content: data.message.content,
-          }),
-        });
+      if (!assistantResponse.ok) {
+        throw new Error(
+          `Failed to save assistant message: ${assistantResponse.status}`
+        );
+      }
 
-        if (!assistantResponse.ok) {
-          throw new Error(
-            `Failed to save assistant message: ${assistantResponse.status}`
-          );
-        }
+      setMessages((prev) => [...prev, assistantMessage]);
+      console.log("Message flow completed successfully");
 
-        setMessages((prev) => [...prev, assistantMessage]);
-        console.log("Message flow completed successfully");
-
-        toast.success("Message sent", {
-          description: "Your message has been sent and the response received.",
-        });
+      toast.success("Message sent", {
+        description: "Your message has been sent and the response received.",
+      });
     } catch (error) {
       console.error("Error sending message:", error);
       // Add user-friendly error handling
@@ -590,29 +615,30 @@ export default function Home() {
   // Handle file selection
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    const validFiles = files.filter(file => isSupportedImageFile(file));
-    
+    const validFiles = files.filter((file) => isSupportedImageFile(file));
+
     if (validFiles.length !== files.length) {
       toast.error("Some files were not supported", {
-        description: "Only image files (JPG, PNG, GIF, BMP, WebP, TIFF) are supported.",
+        description:
+          "Only image files (JPG, PNG, GIF, BMP, WebP, TIFF) are supported.",
       });
     }
-    
+
     if (validFiles.length > 0) {
-      setSelectedFiles(prev => [...prev, ...validFiles]);
+      setSelectedFiles((prev) => [...prev, ...validFiles]);
       toast.success("Images added", {
         description: `${validFiles.length} image(s) added to your message.`,
       });
     }
-    
+
     // Reset the input
     if (event.target) {
-      event.target.value = '';
+      event.target.value = "";
     }
   };
 
   const removeFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handlePaperclipClick = () => {
@@ -690,339 +716,402 @@ export default function Home() {
 
   return (
     <ErrorBoundary>
-      <div className="h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-2 overflow-hidden">
-        <div className="max-w-6xl mx-auto h-full flex flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
+      <div className="h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 overflow-hidden">
+        <div className="h-full flex flex-col">
+          {/* Mobile Header */}
+          <div className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden"
+              >
+                {sidebarOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
+              </Button>
               <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <Brain className="h-5 w-5 text-white" />
               </div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              <h1 className="text-lg font-bold text-slate-900 dark:text-white truncate">
                 Chat With The Brain
               </h1>
             </div>
             <div className="flex items-center space-x-2">
-              <Badge variant={isConnected ? "default" : "destructive"}>
-                {isConnected ? "Connected" : "Disconnected"}
-              </Badge>
-              <Badge variant={isAPIAvailable ? "default" : "destructive"}>
-                {isAPIAvailable ? "API OK" : "API Error"}
-              </Badge>
+              <div className="hidden sm:flex items-center space-x-2">
+                <Badge
+                  variant={isConnected ? "default" : "destructive"}
+                  className="text-xs"
+                >
+                  {isConnected ? "Connected" : "Disconnected"}
+                </Badge>
+                <Badge
+                  variant={isAPIAvailable ? "default" : "destructive"}
+                  className="text-xs"
+                >
+                  {isAPIAvailable ? "API OK" : "API Error"}
+                </Badge>
+              </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={fetchModels}
                 disabled={isLoading}
+                className="hidden sm:flex"
               >
-                Refresh Models
+                Refresh
               </Button>
               <ThemeSwitcher />
             </div>
           </div>
 
-          
+          {/* Main Content Area */}
+          <div className="flex-1 flex min-h-0 overflow-hidden main-content-area">
+            {/* Sidebar - Mobile Overlay / Desktop Sidebar */}
+            <div
+              className={`
+              fixed inset-y-0 left-0 z-50 w-72 sm:w-80 bg-background border-r transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:z-auto sidebar-laptop
+              ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+            `}
+            >
+              <Card className="h-full flex flex-col bg-blue-25/30 dark:bg-blue-950/20 border-2 border-slate-300 dark:border-slate-600 rounded-none lg:rounded-lg lg:m-2">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Models & Chats</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col space-y-3 overflow-hidden min-h-0">
+                  {/* Model Selection */}
+                  <div className="space-y-3 flex-shrink-0">
+                    <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Model Selection
+                    </h3>
+                    <Select
+                      value={selectedModel}
+                      onValueChange={setSelectedModel}
+                    >
+                      <SelectTrigger className="w-full border-2 border-slate-300 dark:border-slate-600">
+                        <SelectValue placeholder="Select a model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {models.map((model) => (
+                          <SelectItem key={model.name} value={model.name}>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{model.name}</span>
+                              <span className="text-xs text-slate-500">
+                                {model.size} •{" "}
+                                {new Date(
+                                  model.modified_at
+                                ).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
 
-          <div className="flex-1 flex gap-2 min-h-0 overflow-hidden">
-            {/* Left Sidebar - Model Selection & Chat History */}
-            <Card className="w-72 flex-shrink-0 flex flex-col bg-blue-25/30 dark:bg-blue-950/20 border-2 border-slate-300 dark:border-slate-600">
-              <CardHeader>
-                <CardTitle className="text-lg">Models & Chats</CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col space-y-3 overflow-hidden min-h-0">
-                {/* Model Selection */}
-                <div className="space-y-3 flex-shrink-0">
-                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Model Selection
-                  </h3>
-                  <Select
-                    value={selectedModel}
-                    onValueChange={setSelectedModel}
-                  >
-                    <SelectTrigger className="w-full border-2 border-slate-300 dark:border-slate-600">
-                      <SelectValue placeholder="Select a model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {models.map((model) => (
-                        <SelectItem key={model.name} value={model.name}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{model.name}</span>
-                            <span className="text-xs text-slate-500">
-                              {model.size} •{" "}
-                              {new Date(model.modified_at).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                        Model Info (Hover for details)
+                      </h4>
+                      <ModelInfoTooltip
+                        model={selectedModelData}
+                        isVisionModel={isVisionModel}
+                      >
+                        <div className="flex items-center gap-2 p-2 rounded-md border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-help">
+                          <Brain className="h-4 w-4 text-blue-500" />
+                          <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">
+                            {selectedModelData
+                              ? selectedModelData.name
+                              : "Select a model"}
+                          </span>
+                          {isVisionModel && (
+                            <Eye className="h-3 w-3 text-green-500 flex-shrink-0" />
+                          )}
+                        </div>
+                      </ModelInfoTooltip>
+                    </div>
 
-                  <div className="space-y-2">
-                    <h4 className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                      Model Info (Hover for details)
-                    </h4>
-                    <ModelInfoTooltip model={selectedModelData} isVisionModel={isVisionModel}>
-                      <div className="flex items-center gap-2 p-2 rounded-md border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-help">
-                        <Brain className="h-4 w-4 text-blue-500" />
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                          {selectedModelData ? selectedModelData.name : "Select a model"}
-                        </span>
-                        {isVisionModel && (
-                          <Eye className="h-3 w-3 text-green-500" />
-                        )}
+                    {models.length === 0 && (
+                      <div className="text-center py-4 text-slate-500">
+                        <p className="text-sm">No models found</p>
+                        <p className="text-xs mt-1">
+                          Make sure Ollama is running
+                        </p>
                       </div>
-                    </ModelInfoTooltip>
+                    )}
                   </div>
 
-                  {models.length === 0 && (
-                    <div className="text-center py-4 text-slate-500">
-                      <p className="text-sm">No models found</p>
-                      <p className="text-xs mt-1">
-                        Make sure Ollama is running
-                      </p>
+                  {/* Divider */}
+                  <div className="border-t-2 border-slate-300 dark:border-slate-600 flex-shrink-0"></div>
+
+                  {/* Chat History */}
+                  <div className="flex-1 flex flex-col space-y-3 min-h-0 overflow-hidden">
+                    <div className="flex items-center justify-between flex-shrink-0">
+                      <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Chat History
+                      </h3>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowNewChatDialog(true)}
+                        className="h-6 w-6 p-0"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
                     </div>
-                  )}
-                </div>
+                    <div className="flex-1 min-h-0 overflow-hidden max-h-full">
+                      <ChatHistory
+                        selectedChatId={currentChatId}
+                        onSelectChat={selectChat}
+                        onDeleteChat={deleteChat}
+                        onUpdateChatTitle={updateChatTitle}
+                        refreshTrigger={chatRefreshTrigger}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-                {/* Divider */}
-                <div className="border-t-2 border-slate-300 dark:border-slate-600 flex-shrink-0"></div>
+            {/* Overlay for mobile */}
+            {sidebarOpen && (
+              <div
+                className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                onClick={() => setSidebarOpen(false)}
+              />
+            )}
 
-                {/* Chat History */}
-                <div className="flex-1 flex flex-col space-y-3 min-h-0 overflow-hidden">
-                  <div className="flex items-center justify-between flex-shrink-0">
-                    <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Chat History
-                    </h3>
+            {/* Main Chat Area */}
+            <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden main-content-laptop">
+              <Card className="h-full flex flex-col min-w-0 min-h-0 overflow-hidden chat-container bg-blue-25/30 dark:bg-blue-950/20 border-2 border-slate-300 dark:border-slate-600 rounded-none lg:rounded-lg lg:m-2">
+                <CardHeader className="border-b-2 border-slate-300 dark:border-slate-600 flex-shrink-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-lg truncate">
+                        {currentChat ? currentChat.title : "Chatalicious"}
+                      </CardTitle>
+                      {currentChat && (
+                        <p className="text-sm text-slate-500 truncate">
+                          Using {currentChat.modelName} •{" "}
+                          {new Date(currentChat.updatedAt).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setShowNewChatDialog(true)}
-                      className="h-6 w-6 p-0"
+                      onClick={saveAndStartNewChat}
+                      className="flex items-center gap-2 ml-2 flex-shrink-0"
                     >
-                      <Plus className="h-3 w-3" />
+                      <MessageSquare className="h-4 w-4" />
+                      <span className="hidden sm:inline">New Chat</span>
                     </Button>
                   </div>
-                  <div className="flex-1 min-h-0 overflow-hidden max-h-full">
-                    <ChatHistory
-                      selectedChatId={currentChatId}
-                      onSelectChat={selectChat}
-                      onDeleteChat={deleteChat}
-                      onUpdateChatTitle={updateChatTitle}
-                      refreshTrigger={chatRefreshTrigger}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Main Chat Area */}
-            <Card className="flex-1 flex flex-col min-w-0 min-h-0 max-h-full overflow-hidden chat-container bg-blue-25/30 dark:bg-blue-950/20 border-2 border-slate-300 dark:border-slate-600">
-              <CardHeader className="border-b-2 border-slate-300 dark:border-slate-600 flex-shrink-0">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg">
-                      {currentChat ? currentChat.title : "Chatalicious"}
-                    </CardTitle>
-                    {currentChat && (
-                      <p className="text-sm text-slate-500">
-                        Using {currentChat.modelName} •{" "}
-                        {new Date(currentChat.updatedAt).toLocaleDateString()}
-                      </p>
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={saveAndStartNewChat}
-                    className="flex items-center gap-2"
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    New Chat
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                {/* Messages */}
-                <ScrollArea
-                  className="flex-1 mb-4 scrollbar-visible border-2 border-slate-300 dark:border-slate-600 rounded-md min-h-0 max-h-full chat-messages"
-                  ref={scrollAreaRef}
-                  type="always"
-                >
-                  <div className="space-y-4 p-4 min-h-0">
-                    {messages.length === 0 ? (
-                      <div className="text-center py-12 text-slate-500">
-                        <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
-                          <span className="text-2xl">💬</span>
-                        </div>
-                        <h3 className="text-lg font-medium mb-2">
-                          Start a conversation
-                        </h3>
-                        <p className="text-sm">
-                          Select a model and send your first message to begin
-                          chatting with Ollama.
-                        </p>
-                      </div>
-                    ) : (
-                      messages.map((message, index) => (
-                        <div
-                          key={message.id}
-                          ref={
-                            index === messages.length - 1
-                              ? lastMessageRef
-                              : null
-                          }
-                          className={`flex gap-3 ${
-                            message.role === "user"
-                              ? "justify-end"
-                              : "justify-start"
-                          }`}
-                        >
-                          {message.role === "assistant" && (
-                            <Avatar className="w-8 h-8">
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-0">
+                  {/* Messages */}
+                  <div className="flex-1 overflow-hidden min-h-0">
+                    <ScrollArea
+                      className="h-full scrollbar-visible border-2 border-slate-300 dark:border-slate-600 rounded-md chat-messages"
+                      ref={scrollAreaRef}
+                      type="always"
+                    >
+                      <div className="space-y-4 p-4">
+                        {messages.length === 0 ? (
+                          <div className="text-center py-12 text-slate-500">
+                            <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
+                              <span className="text-2xl">💬</span>
+                            </div>
+                            <h3 className="text-lg font-medium mb-2">
+                              Start a conversation
+                            </h3>
+                            <p className="text-sm px-4">
+                              Select a model and send your first message to
+                              begin chatting with Ollama.
+                            </p>
+                          </div>
+                        ) : (
+                          messages.map((message, index) => (
+                            <div
+                              key={message.id}
+                              ref={
+                                index === messages.length - 1
+                                  ? lastMessageRef
+                                  : null
+                              }
+                              className={`flex gap-3 ${
+                                message.role === "user"
+                                  ? "justify-end"
+                                  : "justify-start"
+                              }`}
+                            >
+                              {message.role === "assistant" && (
+                                <Avatar className="w-8 h-8 flex-shrink-0">
+                                  <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                                    <Brain className="h-4 w-4" />
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
+                              <div
+                                className={`max-w-[85%] sm:max-w-[70%] rounded-lg px-4 py-2 ${
+                                  message.role === "user"
+                                    ? "bg-blue-500 text-white"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white"
+                                }`}
+                              >
+                                <p className="text-sm whitespace-pre-wrap break-words">
+                                  {message.content}
+                                </p>
+                                {message.images &&
+                                  message.images.length > 0 && (
+                                    <div className="mt-2 space-y-2">
+                                      <div className="text-xs text-slate-500">
+                                        📎 {message.images.length} image
+                                        {message.images.length > 1
+                                          ? "s"
+                                          : ""}{" "}
+                                        attached
+                                      </div>
+                                      <div className="flex flex-wrap gap-2">
+                                        {message.images.map((image, index) => (
+                                          // eslint-disable-next-line @next/next/no-img-element
+                                          <img
+                                            key={index}
+                                            src={`data:image/jpeg;base64,${image}`}
+                                            alt={`Attached image ${index + 1}`}
+                                            className="w-16 h-16 object-cover rounded border"
+                                          />
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                <p className="text-xs mt-1 opacity-70">
+                                  {message.timestamp.toLocaleTimeString()}
+                                </p>
+                              </div>
+                              {message.role === "user" && (
+                                <Avatar className="w-8 h-8 flex-shrink-0">
+                                  <AvatarFallback className="bg-slate-500 text-white">
+                                    <User className="h-4 w-4" />
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
+                            </div>
+                          ))
+                        )}
+                        {isLoading && (
+                          <div
+                            ref={lastMessageRef}
+                            className="flex gap-3 justify-start"
+                          >
+                            <Avatar className="w-8 h-8 flex-shrink-0">
                               <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
                                 <Brain className="h-4 w-4" />
                               </AvatarFallback>
                             </Avatar>
-                          )}
-                          <div
-                            className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                              message.role === "user"
-                                ? "bg-blue-500 text-white"
-                                : "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white"
-                            }`}
-                          >
-                            <p className="text-sm whitespace-pre-wrap">
-                              {message.content}
-                            </p>
-                            {message.images && message.images.length > 0 && (
-                              <div className="mt-2 space-y-2">
-                                <div className="text-xs text-slate-500">
-                                  📎 {message.images.length} image{message.images.length > 1 ? 's' : ''} attached
-                                </div>
-                                                                  <div className="flex flex-wrap gap-2">
-                                    {message.images.map((image, index) => (
-                                      // eslint-disable-next-line @next/next/no-img-element
-                                      <img
-                                        key={index}
-                                        src={`data:image/jpeg;base64,${image}`}
-                                        alt={`Attached image ${index + 1}`}
-                                        className="w-16 h-16 object-cover rounded border"
-                                      />
-                                    ))}
-                                </div>
+                            <div className="bg-slate-100 dark:bg-slate-800 rounded-lg px-4 py-2">
+                              <div className="flex space-x-1">
+                                <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                                <div
+                                  className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+                                  style={{ animationDelay: "0.1s" }}
+                                ></div>
+                                <div
+                                  className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+                                  style={{ animationDelay: "0.2s" }}
+                                ></div>
                               </div>
-                            )}
-                            <p className="text-xs mt-1 opacity-70">
-                              {message.timestamp.toLocaleTimeString()}
-                            </p>
+                            </div>
                           </div>
-                          {message.role === "user" && (
-                            <Avatar className="w-8 h-8">
-                              <AvatarFallback className="bg-slate-500 text-white">
-                                <User className="h-4 w-4" />
-                              </AvatarFallback>
-                            </Avatar>
-                          )}
-                        </div>
-                      ))
-                    )}
-                                        {isLoading && (
-                      <div
-                        ref={lastMessageRef}
-                        className="flex gap-3 justify-start"
-                      >
-                        <Avatar className="w-8 h-8">
-                          <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-                            <Brain className="h-4 w-4" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="bg-slate-100 dark:bg-slate-800 rounded-lg px-4 py-2">
-                          <div className="flex space-x-1">
-                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                            <div
-                              className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
-                              style={{ animationDelay: "0.1s" }}
-                            ></div>
-                            <div
-                              className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
-                              style={{ animationDelay: "0.2s" }}
-                            ></div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
-
-                {/* Input Area */}
-                <div className="flex gap-2 flex-shrink-0">
-                  <div className="flex-1 flex flex-col gap-2">
-                    {/* File attachments display */}
-                    {selectedFiles.length > 0 && (
-                      <div className="flex flex-wrap gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
-                        {selectedFiles.map((file, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center gap-2 bg-white dark:bg-slate-700 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-600"
-                          >
-                            <span className="text-xs text-slate-600 dark:text-slate-400">
-                              {file.name}
-                            </span>
-                            <button
-                              onClick={() => removeFile(index)}
-                              className="text-red-500 hover:text-red-700 text-xs"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {/* Text input and buttons */}
-                    <div className="flex gap-2">
-                      <Textarea
-                        value={inputMessage}
-                        onChange={(e) => setInputMessage(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        placeholder="Type your message here... (Press Enter to send, Shift+Enter for new line)"
-                        className="flex-1 resize-none border-2 border-slate-300 dark:border-slate-600"
-                        rows={3}
-                        disabled={!selectedModel || isLoading}
-                      />
-                      <div className="flex flex-col gap-2">
-                        <VoiceRecognition
-                          onTranscript={handleVoiceInput}
-                          onError={handleVoiceError}
-                          disabled={!selectedModel || isLoading}
-                        />
-                        {isVisionModel && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handlePaperclipClick}
-                            disabled={!selectedModel || isLoading}
-                            className="h-10 w-10 p-0"
-                            title="Attach image"
-                          >
-                            <Paperclip className="h-4 w-4" />
-                          </Button>
                         )}
-                        <Button
-                          onClick={sendMessage}
-                          disabled={
-                            (!inputMessage.trim() && selectedFiles.length === 0) || !selectedModel || isLoading
-                          }
-                          className="self-end"
-                        >
-                          {selectedFiles.length > 0 ? `Send with ${selectedFiles.length} image${selectedFiles.length > 1 ? 's' : ''}` : 'Send'}
-                        </Button>
+                      </div>
+                    </ScrollArea>
+                  </div>
+
+                  {/* Input Area */}
+                  <div className="flex-shrink-0 p-4 border-t-2 border-slate-300 dark:border-slate-600">
+                    <div className="flex gap-2">
+                      <div className="flex-1 flex flex-col gap-2">
+                        {/* File attachments display */}
+                        {selectedFiles.length > 0 && (
+                          <div className="flex flex-wrap gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
+                            {selectedFiles.map((file, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center gap-2 bg-white dark:bg-slate-700 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-600"
+                              >
+                                <span className="text-xs text-slate-600 dark:text-slate-400 truncate max-w-20">
+                                  {file.name}
+                                </span>
+                                <button
+                                  onClick={() => removeFile(index)}
+                                  className="text-red-500 hover:text-red-700 text-xs flex-shrink-0"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Text input and buttons */}
+                        <div className="flex gap-2">
+                          <Textarea
+                            value={inputMessage}
+                            onChange={(e) => setInputMessage(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            placeholder="Type your message here... (Press Enter to send, Shift+Enter for new line)"
+                            className="flex-1 resize-none border-2 border-slate-300 dark:border-slate-600"
+                            rows={3}
+                            disabled={!selectedModel || isLoading}
+                          />
+                          <div className="flex flex-col gap-2">
+                            <VoiceRecognition
+                              onTranscript={handleVoiceInput}
+                              onError={handleVoiceError}
+                              disabled={!selectedModel || isLoading}
+                            />
+                            {isVisionModel && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handlePaperclipClick}
+                                disabled={!selectedModel || isLoading}
+                                className="h-10 w-10 p-0"
+                                title="Attach image"
+                              >
+                                <Paperclip className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              onClick={sendMessage}
+                              disabled={
+                                (!inputMessage.trim() &&
+                                  selectedFiles.length === 0) ||
+                                !selectedModel ||
+                                isLoading
+                              }
+                              className="self-end"
+                            >
+                              <span className="hidden sm:inline">
+                                {selectedFiles.length > 0
+                                  ? `Send with ${selectedFiles.length} image${
+                                      selectedFiles.length > 1 ? "s" : ""
+                                    }`
+                                  : "Send"}
+                              </span>
+                              <span className="sm:hidden">Send</span>
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>

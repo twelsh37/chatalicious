@@ -57,39 +57,47 @@ export function ModelSelectionModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={onCancel}
     >
       <Card
-        className="w-96 max-w-[90vw] mx-4"
+        className="w-full max-w-md mx-auto max-h-[90vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-2">
+        <CardHeader className="text-center pb-4">
+          <div className="flex justify-center mb-3">
             <AlertTriangle className="h-8 w-8 text-yellow-500" />
           </div>
-          <CardTitle className="text-lg">No Model Selected</CardTitle>
-          <CardDescription className="text-sm text-slate-600">
+          <CardTitle className="text-lg sm:text-xl">
+            No Model Selected
+          </CardTitle>
+          <CardDescription className="text-sm text-slate-600 dark:text-slate-400">
             Please select a model to start your conversation.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
+        <CardContent className="space-y-4 px-4 sm:px-6">
+          <div className="space-y-3">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
               Available Models
             </label>
             <Select value={selectedModel} onValueChange={setSelectedModel}>
-              <SelectTrigger>
+              <SelectTrigger className="h-12 text-base">
                 <SelectValue placeholder="Select a model" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-60">
                 {models.map((model) => (
-                  <SelectItem key={model.name} value={model.name}>
-                    <div className="flex items-center gap-2">
-                      <Brain className="h-4 w-4" />
-                      <div className="flex flex-col">
-                        <span className="font-medium">{model.name}</span>
-                        <span className="text-xs text-slate-500">
+                  <SelectItem
+                    key={model.name}
+                    value={model.name}
+                    className="py-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Brain className="h-5 w-5 flex-shrink-0" />
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className="font-medium truncate">
+                          {model.name}
+                        </span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
                           {model.size} •{" "}
                           {new Date(model.modified_at).toLocaleDateString()}
                         </span>
@@ -101,20 +109,25 @@ export function ModelSelectionModal({
             </Select>
           </div>
           {models.length === 0 && (
-            <div className="text-center py-4 text-slate-500">
-              <p className="text-sm">No models found</p>
+            <div className="text-center py-6 text-slate-500 dark:text-slate-400">
+              <Brain className="h-8 w-8 mx-auto mb-2 text-slate-400" />
+              <p className="text-sm font-medium">No models found</p>
               <p className="text-xs mt-1">Make sure Ollama is running</p>
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex gap-2 justify-end">
-          <Button variant="outline" onClick={onCancel}>
+        <CardFooter className="flex gap-3 justify-end px-4 sm:px-6 pb-4">
+          <Button
+            variant="outline"
+            onClick={onCancel}
+            className="flex-1 sm:flex-none h-12 sm:h-10"
+          >
             Cancel
           </Button>
           <Button
             onClick={handleConfirm}
             disabled={!selectedModel}
-            className="bg-blue-500 hover:bg-blue-600 text-white"
+            className="flex-1 sm:flex-none h-12 sm:h-10 bg-blue-500 hover:bg-blue-600 text-white"
           >
             Start Chat
           </Button>

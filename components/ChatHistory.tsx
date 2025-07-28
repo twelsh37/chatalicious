@@ -196,38 +196,40 @@ export function ChatHistory({
                           {chat.title}
                         </h4>
                       )}
-                                              <div className="flex items-center gap-1 mt-0.5 min-w-0">
-                          <span className="text-xs text-slate-500 truncate flex-shrink-0">
-                            {formatDate(chat.updatedAt)}
-                          </span>
-                          <span className="text-xs text-slate-400 flex-shrink-0">•</span>
-                                                  <span className="text-xs text-slate-500 truncate min-w-0 break-all">
+                      <div className="flex items-center gap-1 mt-0.5 min-w-0">
+                        <span className="text-xs text-slate-500 truncate flex-shrink-0">
+                          {formatDate(chat.updatedAt)}
+                        </span>
+                        <span className="text-xs text-slate-400 flex-shrink-0">
+                          •
+                        </span>
+                        <span className="text-xs text-slate-500 truncate min-w-0 break-all">
                           {chat.modelName}
                         </span>
-                        </div>
+                      </div>
                     </div>
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-4 w-4 p-0"
+                        className="h-6 w-6 p-0 touch-manipulation"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleEditClick(chat);
                         }}
                       >
-                        <Edit2 className="h-2.5 w-2.5" />
+                        <Edit2 className="h-3 w-3" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-4 w-4 p-0 text-red-500 hover:text-red-700"
+                        className="h-6 w-6 p-0 text-red-500 hover:text-red-700 touch-manipulation"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteClick(chat);
                         }}
                       >
-                        <Trash2 className="h-2.5 w-2.5" />
+                        <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>

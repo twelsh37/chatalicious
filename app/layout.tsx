@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Navigation } from "@/components/Navigation";
 
 export const metadata: Metadata = {
   title: "Ollama Chat",
@@ -48,6 +49,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <ThemeProvider defaultTheme="system" storageKey="ollama-chat-theme">
+          <Navigation />
           {children}
           <Toaster position="top-center" richColors />
         </ThemeProvider>

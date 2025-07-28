@@ -79,29 +79,33 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={onCancel}
     >
       <Card
-        className="w-96 max-w-[90vw] mx-4"
+        className="w-full max-w-md mx-auto max-h-[90vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-2">
+        <CardHeader className="text-center pb-4 px-4 sm:px-6">
+          <div className="flex justify-center mb-3">
             <AlertTriangle className={`h-8 w-8 ${styles.icon}`} />
           </div>
-          <CardTitle className="text-lg">{title}</CardTitle>
-          <CardDescription className="text-sm text-slate-600">
+          <CardTitle className="text-lg sm:text-xl">{title}</CardTitle>
+          <CardDescription className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
             {description}
           </CardDescription>
         </CardHeader>
-        <CardFooter className="flex gap-2 justify-end">
-          <Button variant="outline" onClick={onCancel} className="flex-1">
+        <CardFooter className="flex gap-3 justify-end px-4 sm:px-6 pb-4">
+          <Button
+            variant="outline"
+            onClick={onCancel}
+            className="flex-1 h-12 sm:h-10"
+          >
             {cancelText}
           </Button>
           <Button
             onClick={onConfirm}
-            className={`flex-1 ${styles.confirmButton}`}
+            className={`flex-1 h-12 sm:h-10 ${styles.confirmButton}`}
           >
             {confirmText}
           </Button>
